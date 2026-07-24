@@ -1,6 +1,5 @@
-<!-- src/views/dashboard/index.vue 修正版 -->
 <script setup lang="ts">
-  import { ref, h } from 'vue'
+  import { ref, h } from 'vue' // 新增导入 h
   import QueryForm from '@/components/QueryForm.vue'
   import VirtualTable from '@/components/VirtualTable.vue'
   import type { Column } from 'element-plus'
@@ -30,7 +29,7 @@
     }
   ])
 
-  // 表格列配置 - 使用 h() 替代 JSX
+  // 表格列配置
   const tableColumns = ref<Column[]>([
     {
       key: 'id',
@@ -58,29 +57,14 @@
       key: 'status',
       title: '状态',
       width: 100,
-      cellRenderer: ({ rowData }) => h('span', null, rowData.status === 1 ? '启用' : '禁用')
+      dataKey: 'statusText' // 直接显示数据字段，无需渲染函数
     },
     {
       key: 'operation',
       title: '操作',
       width: 150,
-      cellRenderer: ({ rowData }) =>
-        h('div', null, [
-          h(
-            'button',
-            {
-              onClick: () => msgInfo(`查看${rowData.username}`)
-            },
-            '查看'
-          ),
-          h(
-            'button',
-            {
-              onClick: () => msgInfo(`编辑${rowData.username}`)
-            },
-            '编辑'
-          )
-        ])
+      // 修正：返回 VNode 而非字符串
+      cellRenderer: () => h('span', '查看/编辑')
     }
   ])
 
@@ -91,7 +75,8 @@
       username: `user${index + 1}`,
       role: index % 3 === 0 ? '管理员' : '普通用户',
       createTime: '2026-07-24 16:00:00',
-      status: index % 2
+      status: index % 2,
+      statusText: index % 2 === 1 ? '启用' : '禁用'
     }))
   )
 
@@ -113,6 +98,7 @@
 <template>
   <div class="dashboard-container">
     <h1>欢迎来到ERP控制台</h1>
+    <p>当前系统时间：{{ new Date().toLocaleString() }}</p>
 
     <QueryForm
       :form-items="formItems"
@@ -135,10 +121,15 @@
     padding: 24px;
     min-height: 100%;
     background-color: #f5f7fa;
-  }
 
-  h1 {
-    margin-bottom: 24px;
-    color: var(--el-text-color-primary);
+    h1 {
+      margin-bottom: 16px;
+      color: var(--el-text-color-primary);
+    }
+
+    p {
+      margin-bottom: 24px;
+      color: var(--el-text-color-regular);
+    }
   }
 </style>

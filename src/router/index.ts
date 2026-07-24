@@ -1,6 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useUserStore } from '@/stores/user'
-import { msgWarning } from '@/utils/message'
+import { msgWarning, msgError, msgSuccess } from '@/utils/message'
 
 const router = createRouter({
     history: createWebHistory(import.meta.env.BASE_URL),
@@ -20,7 +20,7 @@ const router = createRouter({
                     path: 'dashboard',
                     name: 'dashboard',
                     component: () => import('@/views/dashboard/index.vue'),
-                    meta: { title: '控制台', icon: 'HomeFilled', requiresAuth: true }
+                    meta: { title: '控制台', requiresAuth: true }
                 }
             ]
         },
@@ -32,6 +32,9 @@ const router = createRouter({
         }
     ]
 })
+
+// 存储已加载的动态路由，避免重复注册
+let dynamicRoutesLoaded = false
 
 // 路由守卫：权限校验
 router.beforeEach(async (to, from, next) => {
@@ -55,14 +58,50 @@ router.beforeEach(async (to, from, next) => {
     if (token && !userStore.userInfo) {
         try {
             await userStore.getUserInfo()
-            next()
+            msgSuccess('登录成功！')
         } catch {
             next('/login')
+            return
         }
-        return
     }
 
-    // TODO: n8n注入角色权限校验逻辑
+    // 动态路由注册：仅注册一次
+    if (!dynamicRoutesLoaded) {
+        try {
+            // TODO: n8n注入动态路由接口调用，当前使用Mock数据
+            const dynamicRoutes = [
+                {
+                    path: '/system',
+                    name: 'system',
+                    meta: { title: '系统管理', requiresAuth: true },
+                    children: [
+                        {
+                            path: 'user',
+                            name: 'system-user',
+                            component: () => import('@/views/system/user/index.vue'),
+                            meta: { title: '用户管理', requiresAuth: true, roles: ['admin', 'editor'] }
+                        }
+                    ]
+                }
+            ]
+
+            // 注册动态路由
+            dynamicRoutes.forEach(route => {
+                router.addRoute('/', route)
+            })
+            dynamicRoutesLoaded = true
+
+            // 跳转到目标路由（解决首次加载动态路由后页面404的问题）
+            next({ ...to, replace: true })
+            return
+        } catch (err) {
+            msgError('加载动态路由失败')
+            next('/dashboard')
+            return
+        }
+    }
+
+    // TODO: n8n注入按钮级权限校验逻辑
     next()
 })
 
