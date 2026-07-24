@@ -1,11 +1,9 @@
-/* src/main.ts 修正后 */
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 import router from '@/router'
 import ElementPlus from 'element-plus'
 import '@/styles/element/index.scss'
-// 移除未创建的views.scss导入，避免解析失败
-// import '@/styles/views.scss'
+import '@/styles/layout.scss' // 新增：引入布局样式
 import App from './App.vue'
 
 const app = createApp(App)
