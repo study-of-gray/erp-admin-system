@@ -1,0 +1,65 @@
+<script setup lang="ts">
+import { ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { msgSuccess, msgError, msgWarning } from '@/utils/message'
+import '@/views/login/index.scss'  // 引入独立样式文件
+
+const router = useRouter()
+const loginForm = ref({
+  username: '',
+  password: ''
+})
+const loading = ref(false)
+
+const handleLogin = async () => {
+  if (!loginForm.value.username || !loginForm.value.password) {
+    msgWarning('请输入用户名和密码')
+    return
+  }
+
+  loading.value = true
+  try {
+    await new Promise(resolve => setTimeout(resolve, 1000))
+    localStorage.setItem('ERP_TOKEN', 'mock_token')
+    msgSuccess('登录成功')
+    router.push('/dashboard')
+  } catch (err) {
+    const error = err as any
+    msgError(error.message || '登录失败')
+  } finally {
+    loading.value = false
+  }
+}
+</script>
+
+<template>
+  <div class="login-container">
+    <div class="login-form">
+      <h2>ERP管理系统</h2>
+      <el-input
+        v-model="loginForm.username"
+        placeholder="用户名"
+        class="form-item"
+      />
+      <el-input
+        v-model="loginForm.password"
+        type="password"
+        placeholder="密码"
+        class="form-item"
+        @keyup.enter="handleLogin"
+      />
+      <el-button
+        type="primary"
+        :loading="loading"
+        class="form-item"
+        @click="handleLogin"
+      >
+        登录
+      </el-button>
+    </div>
+  </div>
+</template>
+
+<style scoped lang="scss">
+/* 仅保留组件级作用域样式，具体样式在独立文件中定义 */
+</style>
