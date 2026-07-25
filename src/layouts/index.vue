@@ -1,3 +1,4 @@
+<!-- src/layouts/index.vue 修正版 -->
 <script setup lang="ts">
   import { ref, computed } from 'vue'
   import { useRoute, useRouter } from 'vue-router'
@@ -12,31 +13,31 @@
   const userStore = useUserStore()
   const { userInfo } = storeToRefs(userStore)
 
-  // 侧边栏折叠状态，预留响应式适配
+  // 侧边栏折叠状态
   const isCollapse = ref(false)
 
-  // 侧边栏菜单配置，待n8n从接口动态注入
-  const menuItems = computed(() => [
+  // 侧边栏菜单配置（静态部分）
+  const staticMenuItems = computed(() => [
     {
       path: '/dashboard',
       title: '控制台',
       icon: HomeFilled,
       meta: { requiresAuth: true }
-    },
-    {
-      path: '/system',
-      title: '系统管理',
-      icon: Setting,
-      children: [
-        {
-          path: '/system/user',
-          title: '用户管理',
-          icon: UserFilled,
-          meta: { requiresAuth: true, roles: ['admin'] }
-        }
-      ]
     }
   ])
+
+  // 动态菜单项（从路由中获取）
+  const dynamicMenuItems = computed(() => {
+    const routes = router.getRoutes()
+    return routes
+      .filter(route => route.path.startsWith('/system') && route.meta?.title)
+      .map(route => ({
+        path: route.path,
+        title: route.meta.title as string,
+        icon: Setting,
+        meta: route.meta
+      }))
+  })
 
   const handleLogout = (): void => {
     userStore.logout()
@@ -61,24 +62,22 @@
         router
         class="sidebar-menu"
       >
-        <template v-for="item in menuItems" :key="item.path">
-          <!-- 无子菜单 -->
-          <el-menu-item v-if="!item.children" :index="item.path">
-            <component :is="item.icon" class="menu-icon" />
+        <!-- 静态菜单项 -->
+        <el-menu-item v-for="item in staticMenuItems" :key="item.path" :index="item.path">
+          <component :is="item.icon" class="menu-icon" />
+          <template #title>{{ item.title }}</template>
+        </el-menu-item>
+
+        <!-- 动态菜单项 -->
+        <el-sub-menu v-if="dynamicMenuItems.length > 0" index="/system">
+          <template #title>
+            <Setting class="menu-icon" />
+            <span>系统管理</span>
+          </template>
+          <el-menu-item v-for="item in dynamicMenuItems" :key="item.path" :index="item.path">
             <template #title>{{ item.title }}</template>
           </el-menu-item>
-          <!-- 有子菜单 -->
-          <el-sub-menu v-else :index="item.path">
-            <template #title>
-              <component :is="item.icon" class="menu-icon" />
-              <span>{{ item.title }}</span>
-            </template>
-            <el-menu-item v-for="child in item.children" :key="child.path" :index="child.path">
-              <component :is="child.icon" class="menu-icon" />
-              <template #title>{{ child.title }}</template>
-            </el-menu-item>
-          </el-sub-menu>
-        </template>
+        </el-sub-menu>
       </el-menu>
     </aside>
 
@@ -96,7 +95,7 @@
         </div>
       </header>
 
-      <!-- 内容区 -->
+      <!-- 关键：确保RouterView在正确的位置 -->
       <main class="layout-content">
         <RouterView />
       </main>

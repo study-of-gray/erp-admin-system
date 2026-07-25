@@ -14,12 +14,31 @@ export const permissionDirective = {
             throw new Error('v-permission指令需要传入角色数组，如v-permission="[\'admin\']"')
         }
 
-        const hasPermission = requiredRoles.some(role =>
-            userStore.userInfo?.roles.includes(role)
-        )
+        // 等待用户信息加载完成
+        const checkPermission = () => {
+            const hasPermission = requiredRoles.some(role =>
+                userStore.userInfo?.roles.includes(role)
+            )
 
-        if (!hasPermission) {
-            el.parentNode?.removeChild(el)
+            if (!hasPermission) {
+                el.parentNode?.removeChild(el)
+            }
+        }
+
+        // 如果用户信息还未加载，监听变化
+        if (!userStore.userInfo) {
+            const stopWatch = watch(
+                () => userStore.userInfo,
+                (userInfo) => {
+                    if (userInfo) {
+                        checkPermission()
+                        stopWatch()
+                    }
+                },
+                { immediate: true }
+            )
+        } else {
+            checkPermission()
         }
     }
 }

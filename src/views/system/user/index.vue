@@ -1,12 +1,12 @@
 <script setup lang="ts">
   import { ref, reactive, h } from 'vue'
-  import { ElInput, ElSelect, ElMessage, ElMessageBox } from 'element-plus'
+  import { ElMessage, ElMessageBox } from 'element-plus'
   import QueryForm from '@/components/QueryForm.vue'
   import VirtualTable from '@/components/VirtualTable.vue'
   import type { Column } from 'element-plus'
   import type { UserQueryParams, UserFormParams, SysUserItem } from '@/types/system/user'
   import { http } from '@/utils/request'
-  import { msgSuccess, msgError } from '@/utils/message'
+  import { msgSuccess } from '@/utils/message'
 
   // 查询表单配置
   const formItems = [
@@ -50,68 +50,41 @@
       key: 'status',
       title: '状态',
       width: 100,
-      cellRenderer: ({ rowData }) => {
-        // 纯h()函数写法，无JSX
-        return h(
+      cellRenderer: ({ rowData }) =>
+        h(
           'span',
           {
-            style: {
-              color: rowData.status === 1 ? '#67c23a' : '#f56c6c'
-            }
+            style: { color: rowData.status === 1 ? '#67c23a' : '#f56c6c' }
           },
           rowData.status === 1 ? '启用' : '禁用'
         )
-      }
     },
     { key: 'createTime', title: '创建时间', width: 180 },
     {
       key: 'operation',
       title: '操作',
       width: 200,
-      cellRenderer: ({ rowData }) => {
-        // 纯h()函数写法，无JSX
-        const buttons = [
+      cellRenderer: ({ rowData }) =>
+        h('div', { class: 'operation-btns' }, [
           h(
             'button',
             {
-              style: {
-                marginRight: '8px',
-                padding: '4px 8px',
-                backgroundColor: 'var(--el-color-primary-light-9)',
-                color: 'var(--el-color-primary)',
-                border: 'none',
-                borderRadius: '4px',
-                cursor: 'pointer'
-              },
+              class: 'btn-edit',
               onClick: () => handleEdit(rowData)
             },
             '编辑'
+          ),
+          // 修复：使用正确的v-permission指令语法
+          h(
+            'button',
+            {
+              class: 'btn-delete',
+              vPermission: ['admin'], // 仅admin可见
+              onClick: () => handleDelete(rowData.id)
+            },
+            '删除'
           )
-        ]
-
-        // 根据权限添加删除按钮
-        if (rowData.role === 'admin') {
-          buttons.push(
-            h(
-              'button',
-              {
-                style: {
-                  padding: '4px 8px',
-                  backgroundColor: 'var(--el-color-danger-light-9)',
-                  color: 'var(--el-color-danger)',
-                  border: 'none',
-                  borderRadius: '4px',
-                  cursor: 'pointer'
-                },
-                onClick: () => handleDelete(rowData.id)
-              },
-              '删除'
-            )
-          )
-        }
-
-        return h('div', { style: { display: 'flex' } }, buttons)
-      }
+        ])
     }
   ])
 
@@ -232,37 +205,39 @@
         :rules="{
           username: [{ required: true, message: '请输入用户名', trigger: 'blur' }],
           nickname: [{ required: true, message: '请输入昵称', trigger: 'blur' }],
-          password: isEdit ? [] : [{ required: true, message: '请输入密码', trigger: 'blur' }]
+          password: isEdit ? [] : [{ required: true, message: '请输入密码', trigger: 'blur' }],
+          phone: [{ pattern: /^1[3-9]\d{9}$/, message: '手机号格式不正确', trigger: 'blur' }],
+          email: [{ type: 'email', message: '邮箱格式不正确', trigger: 'blur' }]
         }"
         label-width="80px"
       >
         <el-form-item label="用户名" prop="username">
-          <ElInput v-model="formData.username" placeholder="请输入用户名" />
+          <el-input v-model="formData.username" placeholder="请输入用户名" />
         </el-form-item>
         <el-form-item label="昵称" prop="nickname">
-          <ElInput v-model="formData.nickname" placeholder="请输入昵称" />
+          <el-input v-model="formData.nickname" placeholder="请输入昵称" />
         </el-form-item>
         <el-form-item label="密码" prop="password" v-if="!isEdit">
-          <ElInput v-model="formData.password" type="password" placeholder="请输入密码" />
+          <el-input v-model="formData.password" type="password" placeholder="请输入密码" />
         </el-form-item>
         <el-form-item label="角色" prop="role">
-          <ElSelect v-model="formData.role" placeholder="请选择角色" style="width: 100%">
-            <ElOption label="管理员" value="admin" />
-            <ElOption label="编辑者" value="editor" />
-            <ElOption label="查看者" value="viewer" />
-          </ElSelect>
+          <el-select v-model="formData.role" placeholder="请选择角色" style="width: 100%">
+            <el-option label="管理员" value="admin" />
+            <el-option label="编辑者" value="editor" />
+            <el-option label="查看者" value="viewer" />
+          </el-select>
         </el-form-item>
         <el-form-item label="手机号" prop="phone">
-          <ElInput v-model="formData.phone" placeholder="请输入手机号" />
+          <el-input v-model="formData.phone" placeholder="请输入手机号" />
         </el-form-item>
         <el-form-item label="邮箱" prop="email">
-          <ElInput v-model="formData.email" placeholder="请输入邮箱" />
+          <el-input v-model="formData.email" placeholder="请输入邮箱" />
         </el-form-item>
         <el-form-item label="状态" prop="status">
-          <ElSelect v-model="formData.status" placeholder="请选择状态" style="width: 100%">
-            <ElOption label="启用" :value="1" />
-            <ElOption label="禁用" :value="0" />
-          </ElSelect>
+          <el-select v-model="formData.status" placeholder="请选择状态" style="width: 100%">
+            <el-option label="启用" :value="1" />
+            <el-option label="禁用" :value="0" />
+          </el-select>
         </el-form-item>
       </el-form>
       <template #footer>
@@ -273,43 +248,4 @@
   </div>
 </template>
 
-<style scoped lang="scss">
-  .user-management {
-    .page-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 16px;
-
-      h2 {
-        margin: 0;
-        color: var(--el-text-color-primary);
-      }
-    }
-
-    .operation-btns {
-      button {
-        margin-right: 8px;
-        padding: 4px 8px;
-        border: none;
-        border-radius: 4px;
-        cursor: pointer;
-        font-size: 12px;
-
-        &.btn-edit {
-          background-color: var(--el-color-primary-light-9);
-          color: var(--el-color-primary);
-        }
-
-        &.btn-delete {
-          background-color: var(--el-color-danger-light-9);
-          color: var(--el-color-danger);
-        }
-
-        &:last-child {
-          margin-right: 0;
-        }
-      }
-    }
-  }
-</style>
+<style scoped lang="scss"></style>

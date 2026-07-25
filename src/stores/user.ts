@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import type { UserInfo, LoginParams, LoginResult } from '@/types/user'
-import { msgError } from '@/utils/message'
+import { msgError, msgSuccess } from '@/utils/message'
 import router from '@/router'
 
 export const useUserStore = defineStore(
@@ -10,24 +10,22 @@ export const useUserStore = defineStore(
         const token = ref<string>('')
         const userInfo = ref<UserInfo | null>(null)
 
-        /**
-         * 模拟登录接口，待n8n替换为真实接口
-         */
         const login = async (params: LoginParams): Promise<void> => {
             try {
-                // TODO: n8n注入真实登录接口
+                // 模拟登录接口
                 await new Promise(resolve => setTimeout(resolve, 1000))
                 const mockResult: LoginResult = {
                     token: 'mock_jwt_token',
                     userInfo: {
                         id: 1,
                         username: params.username,
-                        roles: ['admin']
+                        roles: [params.role || 'admin'] // 使用登录表单中的角色
                     }
                 }
                 token.value = mockResult.token
                 userInfo.value = mockResult.userInfo
                 localStorage.setItem('ERP_TOKEN', mockResult.token)
+                msgSuccess('登录成功')
                 router.push('/dashboard')
             } catch (err) {
                 const error = err as any
@@ -36,13 +34,10 @@ export const useUserStore = defineStore(
             }
         }
 
-        /**
-         * 获取用户信息，待n8n替换为真实接口
-         */
         const getUserInfo = async (): Promise<UserInfo | null> => {
             if (!token.value) return null
             try {
-                // TODO: n8n注入获取用户信息接口
+                // 模拟获取用户信息接口
                 await new Promise(resolve => setTimeout(resolve, 500))
                 return userInfo.value
             } catch (err) {

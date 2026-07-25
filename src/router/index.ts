@@ -1,42 +1,47 @@
-import { createRouter, createWebHistory } from 'vue-router'
+// src/router/index.ts 最终稳定版
+import { createRouter, createWebHistory, RouteRecordRaw } from 'vue-router'
 import { useUserStore } from '@/stores/user'
-import { msgWarning, msgError, msgSuccess } from '@/utils/message'
+import { msgWarning } from '@/utils/message'
+import Layout from '@/layouts/index.vue'
+
+// 1. 静态路由：只定义无需权限的页面
+const staticRoutes: RouteRecordRaw[] = [
+    {
+        path: '/login',
+        name: 'login',
+        component: () => import('@/views/login/index.vue'),
+        meta: { requiresAuth: false }
+    },
+    {
+        path: '/',
+        component: Layout,
+        redirect: '/dashboard',
+        children: [
+            {
+                path: 'dashboard',
+                name: 'dashboard',
+                component: () => import('@/views/dashboard/index.vue'),
+                meta: { title: '控制台', requiresAuth: true }
+            }
+        ]
+    },
+    {
+        path: '/:pathMatch(.*)*',
+        name: '404',
+        component: () => import('@/views/404/index.vue'),
+        meta: { requiresAuth: false }
+    }
+]
 
 const router = createRouter({
     history: createWebHistory(import.meta.env.BASE_URL),
-    routes: [
-        {
-            path: '/login',
-            name: 'login',
-            component: () => import('@/views/login/index.vue'),
-            meta: { requiresAuth: false }
-        },
-        {
-            path: '/',
-            component: () => import('@/layouts/index.vue'),
-            redirect: '/dashboard',
-            children: [
-                {
-                    path: 'dashboard',
-                    name: 'dashboard',
-                    component: () => import('@/views/dashboard/index.vue'),
-                    meta: { title: '控制台', requiresAuth: true }
-                }
-            ]
-        },
-        {
-            path: '/:pathMatch(.*)*',
-            name: '404',
-            component: () => import('@/views/404/index.vue'),
-            meta: { requiresAuth: false }
-        }
-    ]
+    routes: staticRoutes
 })
 
-// 存储已加载的动态路由，避免重复注册
+// 2. 标记是否已加载动态路由
 let dynamicRoutesLoaded = false
 
-// 路由守卫：权限校验
+// 3. 简化的路由守卫
 router.beforeEach(async (to, from, next) => {
     const userStore = useUserStore()
     const token = localStorage.getItem('ERP_TOKEN')
@@ -58,51 +63,99 @@ router.beforeEach(async (to, from, next) => {
     if (token && !userStore.userInfo) {
         try {
             await userStore.getUserInfo()
-            msgSuccess('登录成功！')
         } catch {
             next('/login')
             return
         }
     }
 
-    // 动态路由注册：仅注册一次
+    // 加载动态路由（只加载一次）
     if (!dynamicRoutesLoaded) {
         try {
-            // TODO: n8n注入动态路由接口调用，当前使用Mock数据
-            const dynamicRoutes = [
-                {
-                    path: '/system',
-                    name: 'system',
-                    meta: { title: '系统管理', requiresAuth: true },
-                    children: [
-                        {
-                            path: 'user',
-                            name: 'system-user',
-                            component: () => import('@/views/system/user/index.vue'),
-                            meta: { title: '用户管理', requiresAuth: true, roles: ['admin', 'editor'] }
-                        }
-                    ]
-                }
-            ]
+            // 获取用户角色
+            const role = userStore.userInfo?.roles[0] || 'admin'
+
+            // 模拟从API获取菜单（实际项目中替换为真实接口）
+            const menus = await getMenusByRole(role)
 
             // 注册动态路由
-            dynamicRoutes.forEach(route => {
-                router.addRoute('/', route)
+            menus.forEach(menu => {
+                router.addRoute('/', menu)
             })
+
             dynamicRoutesLoaded = true
 
-            // 跳转到目标路由（解决首次加载动态路由后页面404的问题）
+            // 关键：重新导航到目标路由，确保路由匹配
             next({ ...to, replace: true })
             return
         } catch (err) {
-            msgError('加载动态路由失败')
+            console.error('加载动态路由失败:', err)
             next('/dashboard')
             return
         }
     }
 
-    // TODO: n8n注入按钮级权限校验逻辑
     next()
 })
+
+// 4. 模拟根据角色获取菜单的函数
+async function getMenusByRole(role: string): Promise<RouteRecordRaw[]> {
+    // 模拟API延迟
+    await new Promise(resolve => setTimeout(resolve, 100))
+
+    // 根据角色返回不同的菜单
+    const menuMap: Record<string, RouteRecordRaw[]> = {
+        admin: [
+            {
+                path: '/system',
+                name: 'system',
+                component: Layout,
+                meta: { title: '系统管理', requiresAuth: true },
+                children: [
+                    {
+                        path: 'user',
+                        name: 'system-user',
+                        component: () => import('@/views/system/user/index.vue'),
+                        meta: { title: '用户管理', requiresAuth: true }
+                    }
+                ]
+            }
+        ],
+        editor: [
+            {
+                path: '/system',
+                name: 'system',
+                component: Layout,
+                meta: { title: '系统管理', requiresAuth: true },
+                children: [
+                    {
+                        path: 'user',
+                        name: 'system-user',
+                        component: () => import('@/views/system/user/index.vue'),
+                        meta: { title: '用户管理', requiresAuth: true }
+                    }
+                ]
+            }
+        ],
+        viewer: [
+            {
+                path: '/system',
+                name: 'system',
+                component: Layout,
+                meta: { title: '系统管理', requiresAuth: true },
+                children: [
+                    {
+                        path: 'user',
+                        name: 'system-user',
+                        component: () => import('@/views/system/user/index.vue'),
+                        meta: { title: '用户管理', requiresAuth: true }
+                    }
+                ]
+            }
+        ]
+    }
+
+    return menuMap[role] || []
+}
 
 export default router
