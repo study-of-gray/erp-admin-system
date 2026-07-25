@@ -1,4 +1,4 @@
-/* vite.config.ts 修正版 */
+// vite.config.ts
 import { defineConfig, loadEnv } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import AutoImport from 'unplugin-auto-import/vite'
@@ -6,10 +6,8 @@ import Components from 'unplugin-vue-components/vite'
 import { ElementPlusResolver } from 'unplugin-vue-components/resolvers'
 import ElementPlus from 'unplugin-element-plus/vite'
 import path from 'path'
-import { viteMockServe } from 'vite-plugin-mock'
 
 export default defineConfig(({ mode }) => {
-  // 关键修复：显式加载环境变量
   const env = loadEnv(mode, process.cwd(), '')
 
   return {
@@ -27,17 +25,12 @@ export default defineConfig(({ mode }) => {
         resolvers: [ElementPlusResolver({ importStyle: 'sass' })],
         dts: 'src/types/components.d.ts',
       }),
-      // 简化Mock配置：仅在开发环境且启用Mock时生效
-      viteMockServe({
-        mockPath: 'mock',
-        enable: env.VITE_ENABLE_MOCK === 'true' && mode === 'development',
-        logger: true
-      })
+      // ✅ 已移除 vite-plugin-mock，避免依赖缺失
     ],
     css: {
       preprocessorOptions: {
         scss: {
-          // 已移除additionalData，避免循环加载
+          api: 'modern', // 消除 Sass 废弃警告
         },
       },
     },
@@ -47,13 +40,27 @@ export default defineConfig(({ mode }) => {
       }
     },
     server: {
-      proxy: {
-        '/api': {
-          target: 'http://localhost:5173',
-          changeOrigin: true,
-          rewrite: (path) => path.replace(/^\/api/, '')
+      host: 'localhost',
+      port: 5173,
+      open: true,
+    },
+    build: {
+      sourcemap: mode !== 'production',
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            vue: ['vue', 'vue-router', 'pinia'],
+            element: ['element-plus'],
+            utils: ['axios', 'lodash-es']
+          }
+        }
+      },
+      terserOptions: {
+        compress: {
+          drop_console: mode === 'production',
+          drop_debugger: mode === 'production'
         }
       }
-    }
+    },
   }
 })

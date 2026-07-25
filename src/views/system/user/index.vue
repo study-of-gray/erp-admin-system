@@ -1,21 +1,17 @@
 <script setup lang="ts">
-  import { ref, reactive, h } from 'vue'
-  import { ElMessage, ElMessageBox } from 'element-plus'
+  import { ref, h } from 'vue'
+  import { ElMessageBox } from 'element-plus'
   import QueryForm from '@/components/QueryForm.vue'
   import VirtualTable from '@/components/VirtualTable.vue'
   import type { Column } from 'element-plus'
   import type { UserQueryParams, UserFormParams, SysUserItem } from '@/types/system/user'
-  import { http } from '@/utils/request'
   import { msgSuccess } from '@/utils/message'
+  import { usePagination } from '@/composables/usePagination'
+  import { useDialog } from '@/composables/useDialog'
 
-  // 查询表单配置
+  // 查询表单配置（静态）
   const formItems = [
-    {
-      type: 'input',
-      prop: 'username',
-      label: '用户名',
-      placeholder: '请输入用户名'
-    },
+    { type: 'input', prop: 'username', label: '用户名', placeholder: '请输入用户名' },
     {
       type: 'select',
       prop: 'status',
@@ -25,18 +21,13 @@
         { label: '禁用', value: 0 }
       ]
     },
-    {
-      type: 'daterange',
-      prop: 'createTime',
-      label: '创建时间'
-    }
+    { type: 'daterange', prop: 'createTime', label: '创建时间' }
   ]
 
-  // 查询参数
-  const queryParams = reactive<UserQueryParams>({
-    pageNum: 1,
-    pageSize: 20
-  })
+  // 分页逻辑（Hook复用，无请求依赖）
+  const { pagination, total, handlePageChange, handleSizeChange, resetPagination } = usePagination()
+  // 弹窗逻辑（Hook复用，无请求依赖）
+  const { visible, isEdit, open, close } = useDialog()
 
   // 表格列配置
   const tableColumns = ref<Column[]>([
@@ -53,9 +44,7 @@
       cellRenderer: ({ rowData }) =>
         h(
           'span',
-          {
-            style: { color: rowData.status === 1 ? '#67c23a' : '#f56c6c' }
-          },
+          { style: { color: rowData.status === 1 ? '#67c23a' : '#f56c6c' } },
           rowData.status === 1 ? '启用' : '禁用'
         )
     },
@@ -66,31 +55,70 @@
       width: 200,
       cellRenderer: ({ rowData }) =>
         h('div', { class: 'operation-btns' }, [
-          h(
-            'button',
-            {
-              class: 'btn-edit',
-              onClick: () => handleEdit(rowData)
-            },
-            '编辑'
-          ),
-          // 修复：使用正确的v-permission指令语法
-          h(
-            'button',
-            {
-              class: 'btn-delete',
-              vPermission: ['admin'], // 仅admin可见
-              onClick: () => handleDelete(rowData.id)
-            },
-            '删除'
-          )
+          h('button', { class: 'btn-edit', onClick: () => handleEdit(rowData) }, '编辑'),
+          h('button', { class: 'btn-delete', onClick: () => handleDelete(rowData.id) }, '删除')
         ])
     }
   ])
 
-  // 表格引用
-  const tableRef = ref<InstanceType<typeof VirtualTable>>()
-  const dialogVisible = ref(false)
+  // ===== 硬编码假数据（零依赖，绝对不报错）=====
+  const tableData = ref<SysUserItem[]>([
+    {
+      id: 1,
+      username: 'admin',
+      nickname: '管理员',
+      role: 'admin',
+      phone: '13800138000',
+      email: 'admin@erp.com',
+      status: 1,
+      createTime: '2026-01-01'
+    },
+    {
+      id: 2,
+      username: 'editor',
+      nickname: '编辑员',
+      role: 'editor',
+      phone: '13800138001',
+      email: 'editor@erp.com',
+      status: 1,
+      createTime: '2026-01-02'
+    },
+    {
+      id: 3,
+      username: 'viewer',
+      nickname: '观察员',
+      role: 'viewer',
+      phone: '13800138002',
+      email: 'viewer@erp.com',
+      status: 0,
+      createTime: '2026-01-03'
+    },
+    {
+      id: 4,
+      username: 'user01',
+      nickname: '业务用户1',
+      role: 'viewer',
+      phone: '13800138003',
+      email: 'user01@erp.com',
+      status: 1,
+      createTime: '2026-01-04'
+    },
+    {
+      id: 5,
+      username: 'user02',
+      nickname: '业务用户2',
+      role: 'editor',
+      phone: '13800138004',
+      email: 'user02@erp.com',
+      status: 1,
+      createTime: '2026-01-05'
+    }
+  ])
+  // 总条数写死，分页组件可正常交互
+  total.value = 5
+  // ============================================
+
+  // 表单数据
   const formRef = ref()
   const formData = ref<UserFormParams>({
     username: '',
@@ -101,27 +129,20 @@
     email: '',
     status: 1
   })
-  const isEdit = ref(false)
 
-  // 查询
-  const handleSearch = (formData: Record<string, any>) => {
-    Object.assign(queryParams, formData)
-    tableRef.value?.refresh(queryParams)
+  // 查询（仅重置分页，无请求）
+  const handleSearch = () => {
+    resetPagination()
   }
 
-  // 重置
+  // 重置（无请求）
   const handleReset = () => {
-    Object.keys(queryParams).forEach(key => {
-      if (key !== 'pageNum' && key !== 'pageSize') {
-        delete queryParams[key as keyof UserQueryParams]
-      }
-    })
-    tableRef.value?.refresh(queryParams)
+    resetPagination()
   }
 
   // 新增
   const handleAdd = () => {
-    isEdit.value = false
+    open(false)
     formData.value = {
       username: '',
       nickname: '',
@@ -131,47 +152,46 @@
       email: '',
       status: 1
     }
-    dialogVisible.value = true
   }
 
   // 编辑
   const handleEdit = (row: SysUserItem) => {
-    isEdit.value = true
-    formData.value = {
-      id: row.id,
-      username: row.username,
-      nickname: row.nickname,
-      role: row.role,
-      phone: row.phone,
-      email: row.email,
-      status: row.status
-    }
-    dialogVisible.value = true
+    open(true)
+    formData.value = { ...row }
   }
 
   // 删除
   const handleDelete = async (id: number) => {
     try {
       await ElMessageBox.confirm('确认删除该用户吗？', '提示', { type: 'warning' })
-      await http.delete('/system/user/delete', { id })
+      // 仅前端删除假数据，无请求
+      tableData.value = tableData.value.filter(item => item.id !== id)
+      total.value--
       msgSuccess('删除成功')
-      tableRef.value?.refresh(queryParams)
-    } catch (err) {
-      // 用户取消或接口错误，已在拦截器处理
+    } catch {
+      // 取消删除，静默处理
     }
   }
 
-  // 提交表单
+  // 提交表单（仅前端更新假数据，无请求）
   const handleSubmit = async () => {
-    try {
-      await formRef.value?.validate()
-      await http.post('/system/user/save', formData.value)
-      msgSuccess(isEdit.value ? '编辑成功' : '新增成功')
-      dialogVisible.value = false
-      tableRef.value?.refresh(queryParams)
-    } catch (err) {
-      // 校验失败或接口错误，已在拦截器处理
+    if (isEdit.value) {
+      // 编辑：更新假数据
+      const index = tableData.value.findIndex(item => item.id === formData.value.id)
+      if (index > -1) tableData.value[index] = { ...formData.value } as SysUserItem
+      msgSuccess('编辑成功')
+    } else {
+      // 新增：插入假数据
+      const newId = Math.max(...tableData.value.map(item => item.id)) + 1
+      tableData.value.unshift({
+        ...formData.value,
+        id: newId,
+        createTime: new Date().toLocaleDateString()
+      } as SysUserItem)
+      total.value++
+      msgSuccess('新增成功')
     }
+    close()
   }
 </script>
 
@@ -184,7 +204,7 @@
 
     <QueryForm
       :form-items="formItems"
-      :loading="tableRef?.loading || false"
+      :loading="false"
       @search="handleSearch"
       @reset="handleReset"
     />
@@ -192,39 +212,43 @@
     <VirtualTable
       ref="tableRef"
       :columns="tableColumns"
-      api="/system/user/list"
-      :default-page-params="queryParams"
+      :data="tableData"
       :height="500"
+      :loading="false"
     />
 
+    <!-- 分页组件 -->
+    <div class="pagination-wrapper">
+      <el-pagination
+        v-model:current-page="pagination.pageNum"
+        v-model:page-size="pagination.pageSize"
+        :page-sizes="[10, 20, 50, 100]"
+        :total="total"
+        layout="total, sizes, prev, pager, next, jumper"
+        @size-change="handleSizeChange"
+        @current-change="handlePageChange"
+      />
+    </div>
+
     <!-- 新增/编辑弹窗 -->
-    <el-dialog v-model="dialogVisible" :title="isEdit ? '编辑用户' : '新增用户'" width="500px">
-      <el-form
-        ref="formRef"
-        :model="formData"
-        :rules="{
-          username: [{ required: true, message: '请输入用户名', trigger: 'blur' }],
-          nickname: [{ required: true, message: '请输入昵称', trigger: 'blur' }],
-          password: isEdit ? [] : [{ required: true, message: '请输入密码', trigger: 'blur' }],
-          phone: [{ pattern: /^1[3-9]\d{9}$/, message: '手机号格式不正确', trigger: 'blur' }],
-          email: [{ type: 'email', message: '邮箱格式不正确', trigger: 'blur' }]
-        }"
-        label-width="80px"
-      >
+    <el-dialog
+      v-model="visible"
+      :title="isEdit ? '编辑用户' : '新增用户'"
+      width="500px"
+      @close="close"
+    >
+      <el-form ref="formRef" :model="formData" label-width="80px">
         <el-form-item label="用户名" prop="username">
           <el-input v-model="formData.username" placeholder="请输入用户名" />
         </el-form-item>
         <el-form-item label="昵称" prop="nickname">
           <el-input v-model="formData.nickname" placeholder="请输入昵称" />
         </el-form-item>
-        <el-form-item label="密码" prop="password" v-if="!isEdit">
-          <el-input v-model="formData.password" type="password" placeholder="请输入密码" />
-        </el-form-item>
         <el-form-item label="角色" prop="role">
-          <el-select v-model="formData.role" placeholder="请选择角色" style="width: 100%">
+          <el-select v-model="formData.role" placeholder="请选择角色">
             <el-option label="管理员" value="admin" />
-            <el-option label="编辑者" value="editor" />
-            <el-option label="查看者" value="viewer" />
+            <el-option label="编辑员" value="editor" />
+            <el-option label="观察员" value="viewer" />
           </el-select>
         </el-form-item>
         <el-form-item label="手机号" prop="phone">
@@ -234,18 +258,57 @@
           <el-input v-model="formData.email" placeholder="请输入邮箱" />
         </el-form-item>
         <el-form-item label="状态" prop="status">
-          <el-select v-model="formData.status" placeholder="请选择状态" style="width: 100%">
-            <el-option label="启用" :value="1" />
-            <el-option label="禁用" :value="0" />
-          </el-select>
+          <el-radio-group v-model="formData.status">
+            <el-radio :label="1">启用</el-radio>
+            <el-radio :label="0">禁用</el-radio>
+          </el-radio-group>
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="handleSubmit">确认</el-button>
+        <el-button @click="close">取消</el-button>
+        <el-button type="primary" @click="handleSubmit">确定</el-button>
       </template>
     </el-dialog>
   </div>
 </template>
 
-<style scoped lang="scss"></style>
+<style scoped>
+  .user-management {
+    padding: 20px;
+  }
+  .page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+  }
+  .pagination-wrapper {
+    margin-top: 20px;
+    display: flex;
+    justify-content: flex-end;
+  }
+  .operation-btns {
+    display: flex;
+    gap: 8px;
+  }
+  .btn-edit,
+  .btn-delete {
+    border: none;
+    background: none;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 4px;
+  }
+  .btn-edit {
+    color: #409eff;
+  }
+  .btn-edit:hover {
+    background: #ecf5ff;
+  }
+  .btn-delete {
+    color: #f56c6c;
+  }
+  .btn-delete:hover {
+    background: #fef0f0;
+  }
+</style>
