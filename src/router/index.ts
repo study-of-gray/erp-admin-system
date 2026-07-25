@@ -117,6 +117,12 @@ async function getMenusByRole(role: string): Promise<RouteRecordRaw[]> {
                         name: 'system-user',
                         component: () => import('@/views/system/user/index.vue'),
                         meta: { title: '用户管理', requiresAuth: true }
+                    },// 在动态路由的 system 子路由中添加
+                    {
+                        path: 'role',
+                        name: 'system-role',
+                        component: () => import('@/views/system/role/index.vue'),
+                        meta: { title: '角色管理', requiresAuth: true }
                     }
                 ]
             }
