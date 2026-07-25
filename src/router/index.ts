@@ -123,6 +123,12 @@ async function getMenusByRole(role: string): Promise<RouteRecordRaw[]> {
                         name: 'system-role',
                         component: () => import('@/views/system/role/index.vue'),
                         meta: { title: '角色管理', requiresAuth: true }
+                    },
+                    {
+                        path: 'menu',
+                        name: 'system-menu',
+                        component: () => import('@/views/system/menu/index.vue'),
+                        meta: { title: '菜单管理', requiresAuth: true }
                     }
                 ]
             }
