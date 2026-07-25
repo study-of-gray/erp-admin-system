@@ -6,6 +6,7 @@
   import { msgSuccess } from '@/utils/message'
   import { usePagination } from '@/composables/usePagination'
   import { useDialog } from '@/composables/useDialog'
+  import { userService } from '@/mock' // 导入用户服务
 
   // 查询表单配置
   const formItems = [
@@ -26,112 +27,8 @@
   const { pagination, total, handlePageChange, handleSizeChange, resetPagination } = usePagination()
   const { visible, isEdit, open, close } = useDialog()
 
-  // ===== 核心：纯前端假数据 =====
-  const tableData = ref<SysUserItem[]>([
-    {
-      id: 1,
-      username: 'admin',
-      nickname: '管理员',
-      role: 'admin',
-      phone: '13800138000',
-      email: 'admin@erp.com',
-      status: 1,
-      createTime: '2026-01-01'
-    },
-    {
-      id: 2,
-      username: 'editor',
-      nickname: '编辑员',
-      role: 'editor',
-      phone: '13800138001',
-      email: 'editor@erp.com',
-      status: 1,
-      createTime: '2026-01-02'
-    },
-    {
-      id: 3,
-      username: 'viewer',
-      nickname: '观察员',
-      role: 'viewer',
-      phone: '13800138002',
-      email: 'viewer@erp.com',
-      status: 0,
-      createTime: '2026-01-03'
-    },
-    {
-      id: 4,
-      username: 'user01',
-      nickname: '业务用户1',
-      role: 'viewer',
-      phone: '13800138003',
-      email: 'user01@erp.com',
-      status: 1,
-      createTime: '2026-01-04'
-    },
-    {
-      id: 5,
-      username: 'user02',
-      nickname: '业务用户2',
-      role: 'editor',
-      phone: '13800138004',
-      email: 'user02@erp.com',
-      status: 1,
-      createTime: '2026-01-05'
-    },
-    {
-      id: 6,
-      username: 'test01',
-      nickname: '测试用户1',
-      role: 'viewer',
-      phone: '13800138005',
-      email: 'test01@erp.com',
-      status: 1,
-      createTime: '2026-01-06'
-    },
-    {
-      id: 7,
-      username: 'test02',
-      nickname: '测试用户2',
-      role: 'editor',
-      phone: '13800138006',
-      email: 'test02@erp.com',
-      status: 0,
-      createTime: '2026-01-07'
-    },
-    {
-      id: 8,
-      username: 'dev01',
-      nickname: '开发用户1',
-      role: 'admin',
-      phone: '13800138007',
-      email: 'dev01@erp.com',
-      status: 1,
-      createTime: '2026-01-08'
-    },
-    {
-      id: 9,
-      username: 'ops01',
-      nickname: '运维用户1',
-      role: 'admin',
-      phone: '13800138008',
-      email: 'ops01@erp.com',
-      status: 1,
-      createTime: '2026-01-09'
-    },
-    {
-      id: 10,
-      username: 'qa01',
-      nickname: '测试用户1',
-      role: 'viewer',
-      phone: '13800138009',
-      email: 'qa01@erp.com',
-      status: 1,
-      createTime: '2026-01-10'
-    }
-  ])
-
-  // 初始化总数（关键！）
-  total.value = tableData.value.length
+  // 表格数据
+  const tableData = ref<SysUserItem[]>([])
 
   // 表单数据
   const formRef = ref()
@@ -145,130 +42,44 @@
     status: 1
   })
 
-  // 查询（前端过滤）
+  // 加载数据
+  const loadData = () => {
+    const params: UserQueryParams = {
+      username: '',
+      status: undefined,
+      pageNum: pagination.pageNum,
+      pageSize: pagination.pageSize
+    }
+
+    const result = userService.getUsers(params)
+    tableData.value = result.list as unknown as SysUserItem[]
+    total.value = result.total
+  }
+
+  // 初始化加载
+  onMounted(() => {
+    loadData()
+  })
+
+  // 查询
   const handleSearch = (formData: Record<string, any>) => {
-    const { username, status } = formData
-    let filtered = [...tableData.value]
-
-    if (username) {
-      filtered = filtered.filter(item => item.username.includes(username))
-    }
-    if (status !== undefined && status !== '') {
-      filtered = filtered.filter(item => item.status === status)
+    const params: UserQueryParams = {
+      username: formData.username || '',
+      status: formData.status,
+      pageNum: 1,
+      pageSize: pagination.pageSize
     }
 
-    tableData.value = filtered
-    total.value = filtered.length
-    resetPagination()
+    const result = userService.getUsers(params)
+    tableData.value = result.list as unknown as SysUserItem[]
+    total.value = result.total
+    pagination.pageNum = 1
   }
 
   // 重置
   const handleReset = () => {
-    // 恢复原始数据
-    tableData.value = [
-      {
-        id: 1,
-        username: 'admin',
-        nickname: '管理员',
-        role: 'admin',
-        phone: '13800138000',
-        email: 'admin@erp.com',
-        status: 1,
-        createTime: '2026-01-01'
-      },
-      {
-        id: 2,
-        username: 'editor',
-        nickname: '编辑员',
-        role: 'editor',
-        phone: '13800138001',
-        email: 'editor@erp.com',
-        status: 1,
-        createTime: '2026-01-02'
-      },
-      {
-        id: 3,
-        username: 'viewer',
-        nickname: '观察员',
-        role: 'viewer',
-        phone: '13800138002',
-        email: 'viewer@erp.com',
-        status: 0,
-        createTime: '2026-01-03'
-      },
-      {
-        id: 4,
-        username: 'user01',
-        nickname: '业务用户1',
-        role: 'viewer',
-        phone: '13800138003',
-        email: 'user01@erp.com',
-        status: 1,
-        createTime: '2026-01-04'
-      },
-      {
-        id: 5,
-        username: 'user02',
-        nickname: '业务用户2',
-        role: 'editor',
-        phone: '13800138004',
-        email: 'user02@erp.com',
-        status: 1,
-        createTime: '2026-01-05'
-      },
-      {
-        id: 6,
-        username: 'test01',
-        nickname: '测试用户1',
-        role: 'viewer',
-        phone: '13800138005',
-        email: 'test01@erp.com',
-        status: 1,
-        createTime: '2026-01-06'
-      },
-      {
-        id: 7,
-        username: 'test02',
-        nickname: '测试用户2',
-        role: 'editor',
-        phone: '13800138006',
-        email: 'test02@erp.com',
-        status: 0,
-        createTime: '2026-01-07'
-      },
-      {
-        id: 8,
-        username: 'dev01',
-        nickname: '开发用户1',
-        role: 'admin',
-        phone: '13800138007',
-        email: 'dev01@erp.com',
-        status: 1,
-        createTime: '2026-01-08'
-      },
-      {
-        id: 9,
-        username: 'ops01',
-        nickname: '运维用户1',
-        role: 'admin',
-        phone: '13800138008',
-        email: 'ops01@erp.com',
-        status: 1,
-        createTime: '2026-01-09'
-      },
-      {
-        id: 10,
-        username: 'qa01',
-        nickname: '测试用户1',
-        role: 'viewer',
-        phone: '13800138009',
-        email: 'qa01@erp.com',
-        status: 1,
-        createTime: '2026-01-10'
-      }
-    ]
-    total.value = tableData.value.length
-    resetPagination()
+    loadData()
+    pagination.pageNum = 1
   }
 
   // 新增
@@ -295,9 +106,9 @@
   const handleDelete = async (id: number) => {
     try {
       await ElMessageBox.confirm('确认删除该用户吗？', '提示', { type: 'warning' })
-      tableData.value = tableData.value.filter(item => item.id !== id)
-      total.value = tableData.value.length
+      userService.deleteUser(id)
       msgSuccess('删除成功')
+      loadData()
     } catch {
       // 取消删除
     }
@@ -307,23 +118,29 @@
   const handleSubmit = async () => {
     if (isEdit.value) {
       // 编辑
-      const index = tableData.value.findIndex(item => item.id === formData.value.id)
-      if (index > -1) {
-        tableData.value[index] = { ...formData.value } as SysUserItem
-      }
+      userService.updateUser(formData.value.id!, {
+        username: formData.value.username,
+        nickname: formData.value.nickname,
+        role: formData.value.role,
+        phone: formData.value.phone,
+        email: formData.value.email,
+        status: formData.value.status
+      })
       msgSuccess('编辑成功')
     } else {
       // 新增
-      const newId = Math.max(...tableData.value.map(item => item.id)) + 1
-      tableData.value.unshift({
-        ...formData.value,
-        id: newId,
-        createTime: new Date().toLocaleDateString()
-      } as SysUserItem)
-      total.value = tableData.value.length
+      userService.addUser({
+        username: formData.value.username,
+        nickname: formData.value.nickname,
+        role: formData.value.role,
+        phone: formData.value.phone,
+        email: formData.value.email,
+        status: formData.value.status
+      })
       msgSuccess('新增成功')
     }
     close()
+    loadData()
   }
 </script>
 

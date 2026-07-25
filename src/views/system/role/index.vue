@@ -1,11 +1,12 @@
 <script setup lang="ts">
-  import { ref, h } from 'vue'
-  import { ElMessageBox, ElMessage } from 'element-plus'
+  import { ref, h, onMounted } from 'vue'
+  import { ElMessageBox } from 'element-plus'
   import QueryForm from '@/components/QueryForm.vue'
   import type { RoleFormParams, SysRoleItem } from '@/types/system/role'
   import { msgSuccess } from '@/utils/message'
   import { usePagination } from '@/composables/usePagination'
   import { useDialog } from '@/composables/useDialog'
+  import { roleService } from '@/mock' // 导入角色服务
 
   // 查询表单配置
   const formItems = [
@@ -25,104 +26,10 @@
   const { pagination, total, handlePageChange, handleSizeChange, resetPagination } = usePagination()
   const { visible, isEdit, open, close } = useDialog()
 
-  // ===== 角色数据（纯前端假数据）=====
-  const tableData = ref<SysRoleItem[]>([
-    {
-      id: 1,
-      roleName: '超级管理员',
-      roleCode: 'ROLE_ADMIN',
-      description: '系统最高权限',
-      status: 1,
-      createTime: '2026-01-01',
-      permissions: ['system:user', 'system:role', 'system:menu']
-    },
-    {
-      id: 2,
-      roleName: '编辑员',
-      roleCode: 'ROLE_EDITOR',
-      description: '内容编辑权限',
-      status: 1,
-      createTime: '2026-01-02',
-      permissions: ['system:user:view', 'system:content']
-    },
-    {
-      id: 3,
-      roleName: '观察员',
-      roleCode: 'ROLE_VIEWER',
-      description: '只读权限',
-      status: 1,
-      createTime: '2026-01-03',
-      permissions: ['system:user:view', 'system:content:view']
-    },
-    {
-      id: 4,
-      roleName: '运维人员',
-      roleCode: 'ROLE_OPS',
-      description: '系统运维权限',
-      status: 1,
-      createTime: '2026-01-04',
-      permissions: ['system:monitor', 'system:log']
-    },
-    {
-      id: 5,
-      roleName: '测试人员',
-      roleCode: 'ROLE_TESTER',
-      description: '测试专用角色',
-      status: 0,
-      createTime: '2026-01-05',
-      permissions: ['system:test']
-    },
-    {
-      id: 6,
-      roleName: '财务专员',
-      roleCode: 'ROLE_FINANCE',
-      description: '财务管理权限',
-      status: 1,
-      createTime: '2026-01-06',
-      permissions: ['finance:report', 'finance:bill']
-    },
-    {
-      id: 7,
-      roleName: '人事专员',
-      roleCode: 'ROLE_HR',
-      description: '人事管理权限',
-      status: 1,
-      createTime: '2026-01-07',
-      permissions: ['hr:employee', 'hr:salary']
-    },
-    {
-      id: 8,
-      roleName: '客服人员',
-      roleCode: 'ROLE_SERVICE',
-      description: '客户服务权限',
-      status: 1,
-      createTime: '2026-01-08',
-      permissions: ['service:ticket', 'service:customer']
-    },
-    {
-      id: 9,
-      roleName: '开发工程师',
-      roleCode: 'ROLE_DEVELOPER',
-      description: '开发权限',
-      status: 1,
-      createTime: '2026-01-09',
-      permissions: ['dev:code', 'dev:deploy']
-    },
-    {
-      id: 10,
-      roleName: '产品经理',
-      roleCode: 'ROLE_PM',
-      description: '产品管理权限',
-      status: 1,
-      createTime: '2026-01-10',
-      permissions: ['product:plan', 'product:requirement']
-    }
-  ])
+  // 表格数据
+  const tableData = ref<SysRoleItem[]>([])
 
-  // 初始化总数
-  total.value = tableData.value.length
-
-  // 权限选项（模拟权限树）
+  // 权限选项
   const permissionOptions = [
     {
       label: '系统管理',
@@ -139,22 +46,6 @@
       children: [
         { label: '文章管理', value: 'content:article' },
         { label: '分类管理', value: 'content:category' }
-      ]
-    },
-    {
-      label: '财务管理',
-      value: 'finance',
-      children: [
-        { label: '报表管理', value: 'finance:report' },
-        { label: '账单管理', value: 'finance:bill' }
-      ]
-    },
-    {
-      label: '人事管理',
-      value: 'hr',
-      children: [
-        { label: '员工管理', value: 'hr:employee' },
-        { label: '薪资管理', value: 'hr:salary' }
       ]
     }
   ]
@@ -174,120 +65,45 @@
   const currentRole = ref<SysRoleItem | null>(null)
   const selectedPermissions = ref<string[]>([])
 
-  // 查询（前端过滤）
+  // 加载数据
+  const loadData = () => {
+    const params = {
+      roleName: '',
+      status: undefined,
+      pageNum: pagination.pageNum,
+      pageSize: pagination.pageSize
+    }
+
+    const result = roleService.getRoles(params)
+
+    tableData.value = result.list as unknown as SysRoleItem[]
+    total.value = result.total
+  }
+
+  // 初始化加载
+  onMounted(() => {
+    loadData()
+  })
+
+  // 查询
   const handleSearch = (formData: Record<string, any>) => {
-    const { roleName, status } = formData
-    let filtered = [...tableData.value]
-
-    if (roleName) {
-      filtered = filtered.filter(item => item.roleName.includes(roleName))
-    }
-    if (status !== undefined && status !== '') {
-      filtered = filtered.filter(item => item.status === status)
+    const params = {
+      roleName: formData.roleName || '',
+      status: formData.status,
+      pageNum: 1,
+      pageSize: pagination.pageSize
     }
 
-    tableData.value = filtered
-    total.value = filtered.length
-    resetPagination()
+    const result = roleService.getRoles(params)
+    tableData.value = result.list as unknown as SysRoleItem[]
+    total.value = result.total
+    pagination.pageNum = 1
   }
 
   // 重置
   const handleReset = () => {
-    // 恢复原始数据
-    tableData.value = [
-      {
-        id: 1,
-        roleName: '超级管理员',
-        roleCode: 'ROLE_ADMIN',
-        description: '系统最高权限',
-        status: 1,
-        createTime: '2026-01-01',
-        permissions: ['system:user', 'system:role', 'system:menu']
-      },
-      {
-        id: 2,
-        roleName: '编辑员',
-        roleCode: 'ROLE_EDITOR',
-        description: '内容编辑权限',
-        status: 1,
-        createTime: '2026-01-02',
-        permissions: ['system:user:view', 'system:content']
-      },
-      {
-        id: 3,
-        roleName: '观察员',
-        roleCode: 'ROLE_VIEWER',
-        description: '只读权限',
-        status: 1,
-        createTime: '2026-01-03',
-        permissions: ['system:user:view', 'system:content:view']
-      },
-      {
-        id: 4,
-        roleName: '运维人员',
-        roleCode: 'ROLE_OPS',
-        description: '系统运维权限',
-        status: 1,
-        createTime: '2026-01-04',
-        permissions: ['system:monitor', 'system:log']
-      },
-      {
-        id: 5,
-        roleName: '测试人员',
-        roleCode: 'ROLE_TESTER',
-        description: '测试专用角色',
-        status: 0,
-        createTime: '2026-01-05',
-        permissions: ['system:test']
-      },
-      {
-        id: 6,
-        roleName: '财务专员',
-        roleCode: 'ROLE_FINANCE',
-        description: '财务管理权限',
-        status: 1,
-        createTime: '2026-01-06',
-        permissions: ['finance:report', 'finance:bill']
-      },
-      {
-        id: 7,
-        roleName: '人事专员',
-        roleCode: 'ROLE_HR',
-        description: '人事管理权限',
-        status: 1,
-        createTime: '2026-01-07',
-        permissions: ['hr:employee', 'hr:salary']
-      },
-      {
-        id: 8,
-        roleName: '客服人员',
-        roleCode: 'ROLE_SERVICE',
-        description: '客户服务权限',
-        status: 1,
-        createTime: '2026-01-08',
-        permissions: ['service:ticket', 'service:customer']
-      },
-      {
-        id: 9,
-        roleName: '开发工程师',
-        roleCode: 'ROLE_DEVELOPER',
-        description: '开发权限',
-        status: 1,
-        createTime: '2026-01-09',
-        permissions: ['dev:code', 'dev:deploy']
-      },
-      {
-        id: 10,
-        roleName: '产品经理',
-        roleCode: 'ROLE_PM',
-        description: '产品管理权限',
-        status: 1,
-        createTime: '2026-01-10',
-        permissions: ['product:plan', 'product:requirement']
-      }
-    ]
-    total.value = tableData.value.length
-    resetPagination()
+    loadData()
+    pagination.pageNum = 1
   }
 
   // 新增
@@ -307,7 +123,7 @@
     open(true)
     formData.value = {
       ...row,
-      permissions: [...row.permissions] // 深拷贝权限数组
+      permissions: [...row.permissions]
     }
   }
 
@@ -315,9 +131,9 @@
   const handleDelete = async (id: number) => {
     try {
       await ElMessageBox.confirm('确认删除该角色吗？', '提示', { type: 'warning' })
-      tableData.value = tableData.value.filter(item => item.id !== id)
-      total.value = tableData.value.length
+      roleService.deleteRole(id)
       msgSuccess('删除成功')
+      loadData()
     } catch {
       // 取消删除
     }
@@ -333,12 +149,10 @@
   // 保存权限
   const savePermissions = () => {
     if (currentRole.value) {
-      const index = tableData.value.findIndex(item => item.id === currentRole.value!.id)
-      if (index > -1) {
-        tableData.value[index].permissions = [...selectedPermissions.value]
-      }
+      roleService.updateRolePermissions(currentRole.value.id, selectedPermissions.value)
       msgSuccess('权限分配成功')
       permissionVisible.value = false
+      loadData()
     }
   }
 
@@ -346,29 +160,27 @@
   const handleSubmit = async () => {
     if (isEdit.value) {
       // 编辑
-      const index = tableData.value.findIndex(item => item.id === formData.value.id)
-      if (index > -1) {
-        tableData.value[index] = {
-          ...formData.value,
-          createTime: tableData.value[index].createTime
-        } as SysRoleItem
-      }
+      roleService.updateRole(formData.value.id!, {
+        roleName: formData.value.roleName,
+        roleCode: formData.value.roleCode,
+        description: formData.value.description,
+        status: formData.value.status,
+        permissions: formData.value.permissions
+      })
       msgSuccess('编辑成功')
     } else {
       // 新增
-      const newId = Math.max(...tableData.value.map(item => item.id)) + 1
-      const roleCode = formData.value.roleCode || `ROLE_${formData.value.roleName.toUpperCase()}`
-      tableData.value.unshift({
-        ...formData.value,
-        id: newId,
-        roleCode,
-        createTime: new Date().toLocaleDateString(),
-        permissions: []
-      } as SysRoleItem)
-      total.value = tableData.value.length
+      roleService.addRole({
+        roleName: formData.value.roleName,
+        roleCode: formData.value.roleCode,
+        description: formData.value.description,
+        status: formData.value.status,
+        permissions: formData.value.permissions
+      })
       msgSuccess('新增成功')
     }
     close()
+    loadData()
   }
 </script>
 

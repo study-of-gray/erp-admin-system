@@ -1,103 +1,111 @@
-import { MockMethod } from 'vite-plugin-mock'
-import type { SysUserItem, UserQueryParams } from '@/types/system/user'
+// src/mock/user.ts
+import { MockUser, PaginationResult } from './types'
 
-// 模拟数据库数据
-const userList: SysUserItem[] = Array.from({ length: 300 }).map((_, index) => ({
-    id: index + 1,
-    username: `user${index + 1}`,
-    nickname: `用户${index + 1}`,
-    role: index % 3 === 0 ? 'admin' : index % 3 === 1 ? 'editor' : 'viewer',
-    phone: `138${String(index).padStart(8, '0')}`,
-    email: `user${index + 1}@erp.com`,
-    status: index % 2 as 0 | 1,
-    createTime: '2026-07-24 16:00:00'
-}))
+// 模拟用户数据
+const users: MockUser[] = [
+    { id: 1, username: 'admin', nickname: '管理员', role: 'admin', phone: '13800138000', email: 'admin@erp.com', status: 1, createTime: '2026-01-01' },
+    { id: 2, username: 'editor', nickname: '编辑员', role: 'editor', phone: '13800138001', email: 'editor@erp.com', status: 1, createTime: '2026-01-02' },
+    { id: 3, username: 'viewer', nickname: '观察员', role: 'viewer', phone: '13800138002', email: 'viewer@erp.com', status: 0, createTime: '2026-01-03' },
+    { id: 4, username: 'user01', nickname: '业务用户1', role: 'viewer', phone: '13800138003', email: 'user01@erp.com', status: 1, createTime: '2026-01-04' },
+    { id: 5, username: 'user02', nickname: '业务用户2', role: 'editor', phone: '13800138004', email: 'user02@erp.com', status: 1, createTime: '2026-01-05' },
+    { id: 6, username: 'test01', nickname: '测试用户1', role: 'viewer', phone: '13800138005', email: 'test01@erp.com', status: 1, createTime: '2026-01-06' },
+    { id: 7, username: 'test02', nickname: '测试用户2', role: 'editor', phone: '13800138006', email: 'test02@erp.com', status: 0, createTime: '2026-01-07' },
+    { id: 8, username: 'dev01', nickname: '开发用户1', role: 'admin', phone: '13800138007', email: 'dev01@erp.com', status: 1, createTime: '2026-01-08' },
+    { id: 9, username: 'ops01', nickname: '运维用户1', role: 'admin', phone: '13800138008', email: 'ops01@erp.com', status: 1, createTime: '2026-01-09' },
+    { id: 10, username: 'qa01', nickname: '测试用户1', role: 'viewer', phone: '13800138009', email: 'qa01@erp.com', status: 1, createTime: '2026-01-10' }
+]
 
-export default [
-    // 用户分页列表
-    {
-        url: '/api/system/user/list',
-        method: 'get',
-        response: (req: { query: UserQueryParams }) => {
-            const { pageNum = 1, pageSize = 20, username, status, startTime, endTime } = req.query
-            let filteredList = [...userList]
+// 查询参数接口
+export interface UserQueryParams {
+    username?: string
+    status?: number
+    pageNum?: number
+    pageSize?: number
+}
 
-            // 筛选逻辑
-            if (username) {
-                filteredList = filteredList.filter(item => item.username.includes(username))
-            }
-            if (status !== undefined) {
-                filteredList = filteredList.filter(item => item.status === status)
-            }
-            if (startTime && endTime) {
-                filteredList = filteredList.filter(item =>
-                    item.createTime >= startTime && item.createTime <= endTime
-                )
-            }
+// 用户服务类
+class UserService {
+    // 获取用户列表（支持分页和筛选）
+    getUsers(params: UserQueryParams = {}): PaginationResult<MockUser> {
+        const { username, status, pageNum = 1, pageSize = 10 } = params
 
-            // 分页逻辑
-            const start = (pageNum - 1) * pageSize
-            const end = start + pageSize
-            const list = filteredList.slice(start, end)
+        let filteredUsers = [...users]
 
-            return {
-                code: 200,
-                data: {
-                    list,
-                    total: filteredList.length,
-                    pageNum,
-                    pageSize
-                },
-                message: 'success',
-                timestamp: Date.now()
-            }
+        // 筛选
+        if (username) {
+            filteredUsers = filteredUsers.filter(user => user.username.includes(username))
         }
-    },
-    // 新增/编辑用户
-    {
-        url: '/api/system/user/save',
-        method: 'post',
-        response: (req: { body: UserFormParams }) => {
-            const { id } = req.body
-            if (id) {
-                // 编辑逻辑
-                const index = userList.findIndex(item => item.id === id)
-                if (index > -1) {
-                    userList[index] = { ...userList[index], ...req.body }
-                }
-            } else {
-                // 新增逻辑
-                const newUser: SysUserItem = {
-                    id: userList.length + 1,
-                    ...req.body,
-                    createTime: new Date().toLocaleString()
-                }
-                userList.unshift(newUser)
-            }
-            return {
-                code: 200,
-                data: null,
-                message: '操作成功',
-                timestamp: Date.now()
-            }
+        if (status !== undefined) {
+            filteredUsers = filteredUsers.filter(user => user.status === status)
         }
-    },
-    // 删除用户
-    {
-        url: '/api/system/user/delete',
-        method: 'delete',
-        response: (req: { query: { id: string } }) => {
-            const id = Number(req.query.id)
-            const index = userList.findIndex(item => item.id === id)
-            if (index > -1) {
-                userList.splice(index, 1)
-            }
-            return {
-                code: 200,
-                data: null,
-                message: '删除成功',
-                timestamp: Date.now()
-            }
+
+        // 分页
+        const start = (pageNum - 1) * pageSize
+        const end = start + pageSize
+        const list = filteredUsers.slice(start, end)
+
+        return {
+            list,
+            total: filteredUsers.length,
+            pageNum,
+            pageSize
         }
     }
-] as MockMethod[]
+
+    // 获取所有用户（不分页）
+    getAllUsers(): MockUser[] {
+        return [...users]
+    }
+
+    // 根据ID获取用户
+    getUserById(id: number): MockUser | undefined {
+        return users.find(user => user.id === id)
+    }
+
+    // 添加用户
+    addUser(user: Omit<MockUser, 'id' | 'createTime'>): MockUser {
+        const newId = Math.max(...users.map(u => u.id)) + 1
+        const newUser: MockUser = {
+            ...user,
+            id: newId,
+            createTime: new Date().toLocaleDateString()
+        }
+        users.push(newUser)
+        return newUser
+    }
+
+    // 更新用户
+    updateUser(id: number, updates: Partial<MockUser>): MockUser | null {
+        const index = users.findIndex(user => user.id === id)
+        if (index === -1) return null
+
+        users[index] = { ...users[index], ...updates }
+        return users[index]
+    }
+
+    // 删除用户
+    deleteUser(id: number): boolean {
+        const index = users.findIndex(user => user.id === id)
+        if (index === -1) return false
+
+        users.splice(index, 1)
+        return true
+    }
+
+    // 批量删除用户
+    batchDeleteUsers(ids: number[]): number {
+        let deletedCount = 0
+        ids.forEach(id => {
+            const index = users.findIndex(user => user.id === id)
+            if (index !== -1) {
+                users.splice(index, 1)
+                deletedCount++
+            }
+        })
+        return deletedCount
+    }
+}
+
+// 导出单例实例
+export const userService = new UserService()
+export default users

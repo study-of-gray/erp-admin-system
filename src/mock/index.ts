@@ -1,10 +1,5 @@
-import userMock from './user'
-import menuMock from './menu'
-import type { MockMethod } from 'vite-plugin-mock'
+export { userService } from './user'
+export { roleService } from './role'
+export { menuService } from './menu'
 
-const mockModules: MockMethod[] = [
-    ...userMock,
-    ...menuMock
-]
-
-export default mockModules
+export type { MockUser, MockRole, MockMenu, PaginationResult } from './types'
