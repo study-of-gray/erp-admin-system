@@ -8,7 +8,7 @@ import ElementPlus from 'unplugin-element-plus/vite'
 import path from 'path'
 
 export default defineConfig(({ mode }) => {
-  const env = loadEnv(mode, process.cwd(), '')
+  const env = loadEnv(mode, process.cwd(), '');
 
   return {
     plugins: [
@@ -61,6 +61,20 @@ export default defineConfig(({ mode }) => {
           drop_debugger: mode === 'production'
         }
       }
+    },
+    test: {
+      globals: true,
+      environment: 'jsdom',
+      include: ['test/**/*.spec.ts'],
+      alias: {
+        '@': path.resolve(__dirname, './src'),
+      },
+      setupFiles: ['./test/setup.ts'],
+      coverage: {
+        provider: 'istanbul',
+        reporter: ['text', 'json', 'html'],
+        exclude: ['test/**', 'node_modules/**', 'dist/**', '*.config.*']
+      },
     },
   }
 })
