@@ -1,4 +1,3 @@
-// src/composables/useDialog.ts
 import { ref } from 'vue'
 
 export function useDialog(initialState = false) {
@@ -19,11 +18,17 @@ export function useDialog(initialState = false) {
         visible.value = !visible.value
     }
 
+    const reset = () => {
+        visible.value = initialState
+        isEdit.value = false
+    }
+
     return {
         visible,
         isEdit,
         open,
         close,
-        toggle
+        toggle,
+        reset
     }
 }
