@@ -206,7 +206,7 @@ class MenuService {
         const newMenu: MockMenu = {
             ...menu,
             id: newId,
-            createTime: new Date().toLocaleDateString()
+            createTime: '2026-01-01'
         }
 
         if (menu.parentId === 0) {

@@ -2,6 +2,8 @@ import { config } from '@vue/test-utils'
 import ElementPlus from 'element-plus'
 import { vi } from 'vitest'
 
+const FIXED_DATE = new Date('2026-01-01T00:00:00.000Z')
+vi.setSystemTime(FIXED_DATE)
 // 全局注册 Element Plus
 config.global.plugins = [ElementPlus]
 
@@ -32,4 +34,12 @@ vi.mock('element-plus', async () => {
             alert: vi.fn().mockResolvedValue('alert'),
         },
     }
-})
+});
+
+export const resetTime = () => {
+    vi.useRealTimers()
+}
+
+export const setFixedTime = () => {
+    vi.setSystemTime(FIXED_DATE)
+}

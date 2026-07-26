@@ -68,7 +68,7 @@ class UserService {
         const newUser: MockUser = {
             ...user,
             id: newId,
-            createTime: new Date().toLocaleDateString()
+            createTime: '2026-01-01'
         }
         users.push(newUser)
         return newUser
