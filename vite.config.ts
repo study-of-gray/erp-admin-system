@@ -73,7 +73,9 @@ export default defineConfig(({ mode }) => {
       coverage: {
         provider: 'istanbul',
         reporter: ['text', 'json', 'html'],
-        exclude: ['test/**', 'node_modules/**', 'dist/**', '*.config.*']
+        exclude: ['test/**', 'node_modules/**', 'dist/**', '*.config.*'],
+        reportsDirectory: './coverage',
+        extension: ['.ts', '.vue'],
       },
     },
   }
