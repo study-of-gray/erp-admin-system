@@ -33,7 +33,6 @@ function processDirectory(dir) {
       // 如果内容有变化才写文件，避免不必要的 Git 变动
       if (content !== originalContent) {
         fs.writeFileSync(fullPath, content, 'utf8')
-        console.log(`✅ 已移除时间戳: ${path.relative(coverageDir, fullPath)}`)
       }
     }
   }
