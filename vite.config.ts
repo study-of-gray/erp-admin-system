@@ -72,10 +72,20 @@ export default defineConfig(({ mode }) => {
       setupFiles: ['./test/setup.ts'],
       coverage: {
         provider: 'istanbul',
-        reporter: ['text', 'json', 'html'],
+        reporter: [
+          'text',
+          'json',
+          ['html', { skipTimestamp: true }],
+        ],
         exclude: ['test/**', 'node_modules/**', 'dist/**', '*.config.*'],
         reportsDirectory: './coverage',
         extension: ['.ts', '.vue'],
+        reportOptions: {
+          html: {
+            skipTimestamp: true,  // 禁用时间戳
+            date: false
+          }
+        }
       },
     },
   }

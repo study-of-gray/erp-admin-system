@@ -12,7 +12,7 @@
     "type-check": "vue-tsc --noEmit",
     "prepare": "husky install",
     "test": "vitest",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage && node scripts/strip-coverage-timestamp.mjs"
   },
   "dependencies": {
     "@element-plus/icons-vue": "^2.3.1",
