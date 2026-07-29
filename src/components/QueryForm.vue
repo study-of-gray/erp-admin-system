@@ -2,20 +2,9 @@
   import { ref, watch, computed } from 'vue'
   import { ElInput, ElSelect, ElOption, ElDatePicker, ElButton } from 'element-plus'
   import type { FormInstance } from 'element-plus'
-
+  import type { FormItem } from '@/types/form'
   /** 表单项类型 */
   type FormItemType = 'input' | 'select' | 'date' | 'daterange'
-
-  /** 表单项配置 */
-  interface FormItem {
-    type: FormItemType
-    prop: string
-    label: string
-    placeholder?: string
-    options?: Array<{ label: string; value: any }>
-    clearable?: boolean
-    style?: Record<string, any>
-  }
 
   interface Props {
     /** 表单项配置 */
@@ -26,10 +15,17 @@
     colCount?: number
   }
 
-  const props = withDefaults(defineProps<Props>(), {
-    loading: false,
-    colCount: 4
-  })
+  const props = withDefaults(
+    defineProps<{
+      formItems: FormItem[]
+      loading?: boolean
+      colCount?: number
+    }>(),
+    {
+      loading: false,
+      colCount: 4
+    }
+  )
 
   const emit = defineEmits<{
     /** 查询事件，返回表单值 */

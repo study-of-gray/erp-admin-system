@@ -1,9 +1,11 @@
 <script setup lang="ts">
   import { ref, computed, onMounted } from 'vue'
   import { ElTableV2, ElEmpty } from 'element-plus'
-  import type { Column, SortOrder } from 'element-plus'
+  import type { Column } from 'element-plus'
   import { http } from '@/utils/request'
   import type { PageParams, PageResult } from '@/types/http'
+
+  type SortOrder = 'ascending' | 'descending' | null
 
   interface Props {
     columns: Column[]
@@ -106,8 +108,6 @@
       :width="0"
       :height="height"
       :row-height="rowHeight"
-      :sort-by="sortParams"
-      @sort-change="handleSortChange"
     >
       <template #empty>
         <ElEmpty description="暂无数据" />

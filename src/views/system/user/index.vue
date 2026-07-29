@@ -1,28 +1,39 @@
 <script setup lang="ts">
   import { ref, h, onMounted } from 'vue'
-  import { ElMessageBox } from 'element-plus'
+  import { ElMessageBox, ElTable } from 'element-plus'
   import QueryForm from '@/components/QueryForm.vue'
   import type { UserQueryParams, UserFormParams, SysUserItem } from '@/types/system/user'
   import { msgSuccess } from '@/utils/message'
   import { usePagination } from '@/composables/usePagination'
   import { useDialog } from '@/composables/useDialog'
   import { userService } from '@/mock' // 导入用户服务
+  import type { FormItem } from '@/types/form'
 
   // 查询表单配置
-  const formItems = [
-    { type: 'input', prop: 'username', label: '用户名', placeholder: '请输入用户名' },
+  const formItems: FormItem[] = [
+    {
+      type: 'input', // ✅ 字符串字面量，自动匹配 FormItemType
+      prop: 'username',
+      label: '用户名',
+      placeholder: '请输入用户名'
+    },
+    {
+      type: 'input',
+      prop: 'nickname',
+      label: '昵称',
+      placeholder: '请输入昵称'
+    },
     {
       type: 'select',
-      prop: 'status',
-      label: '状态',
+      prop: 'role',
+      label: '角色',
+      placeholder: '请选择角色',
       options: [
-        { label: '启用', value: 1 },
-        { label: '禁用', value: 0 }
+        { label: '管理员', value: 'admin' },
+        { label: '用户', value: 'user' }
       ]
-    },
-    { type: 'daterange', prop: 'createTime', label: '创建时间' }
+    }
   ]
-
   // Hooks
   const { pagination, total, handlePageChange, handleSizeChange, resetPagination } = usePagination()
   const { visible, isEdit, open, close } = useDialog()
@@ -45,7 +56,7 @@
   // 加载数据
   const loadData = () => {
     const params: UserQueryParams = {
-      username: '',
+      username: pagination.username,
       status: undefined,
       pageNum: pagination.pageNum,
       pageSize: pagination.pageSize
