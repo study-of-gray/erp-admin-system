@@ -20,7 +20,7 @@ export interface LoginResult {
 export interface UserQueryParams {
     username?: string
     nickname?: string
-    role?: string
+    pageSize?: number
 }
 
 export interface PageParams {

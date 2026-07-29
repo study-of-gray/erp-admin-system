@@ -35,12 +35,13 @@ export interface SysMenuItem {
     createTime: string
 }
 
-/** 用户查询参数 */
-export interface UserQueryParams extends PageParams {
+export interface UserQueryParams {
     username?: string
-    status?: 0 | 1
-    startTime?: string
-    endTime?: string
+    nickname?: string
+    role?: string
+    status?: number
+    pageNum?: number
+    pageSize?: number
 }
 
 /** 用户表单参数 */

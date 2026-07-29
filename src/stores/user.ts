@@ -3,6 +3,7 @@ import { ref } from 'vue'
 import type { UserInfo, LoginParams, LoginResult } from '@/types/user'
 import { msgError, msgSuccess } from '@/utils/message'
 import router from '@/router'
+import { persistConfig } from '@/config/persist'
 
 export const useUserStore = defineStore(
     'user',
@@ -61,11 +62,5 @@ export const useUserStore = defineStore(
             logout
         }
     },
-    {
-        persist: {
-            key: 'ERP_USER_STORE',
-            storage: localStorage,
-            paths: ['token', 'userInfo']
-        }
-    }
+    { persist: persistConfig }
 )

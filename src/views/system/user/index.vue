@@ -1,5 +1,5 @@
 <script setup lang="ts">
-  import { ref, h, onMounted } from 'vue'
+  import { ref, onMounted } from 'vue'
   import { ElMessageBox, ElTable } from 'element-plus'
   import QueryForm from '@/components/QueryForm.vue'
   import type { UserQueryParams, UserFormParams, SysUserItem } from '@/types/system/user'
@@ -52,12 +52,11 @@
     email: '',
     status: 1
   })
-
+  const currentQuery = ref<UserQueryParams>({})
   // 加载数据
   const loadData = () => {
     const params: UserQueryParams = {
-      username: pagination.username,
-      status: undefined,
+      ...currentQuery.value,
       pageNum: pagination.pageNum,
       pageSize: pagination.pageSize
     }
@@ -74,23 +73,21 @@
 
   // 查询
   const handleSearch = (formData: Record<string, any>) => {
-    const params: UserQueryParams = {
+    currentQuery.value = {
       username: formData.username || '',
-      status: formData.status,
-      pageNum: 1,
-      pageSize: pagination.pageSize
+      nickname: formData.nickname || '',
+      role: formData.role || ''
     }
 
-    const result = userService.getUsers(params)
-    tableData.value = result.list as unknown as SysUserItem[]
-    total.value = result.total
     pagination.pageNum = 1
+    loadData()
   }
 
   // 重置
   const handleReset = () => {
-    loadData()
+    currentQuery.value = {}
     pagination.pageNum = 1
+    loadData()
   }
 
   // 新增
