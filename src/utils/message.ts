@@ -1,11 +1,11 @@
 /* src/utils/message.ts 统一消息提示封装 */
-import { ElMessage, ElMessageOptions } from 'element-plus'
+import { ElMessage, MessageOptions } from 'element-plus'
 import { ref } from 'vue'
 
 // 防止重复弹窗的消息缓存
 const messageCache = ref<Set<string>>(new Set())
 
-interface CustomMessageOptions extends Omit<ElMessageOptions, 'message'> {
+interface CustomMessageOptions extends Omit<MessageOptions, 'message'> {
     message: string
     /** 相同消息在duration内不重复弹出，单位ms */
     cacheTime?: number
